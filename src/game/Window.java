@@ -1,5 +1,8 @@
 package game;
 
+import java.nio.IntBuffer;
+
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -108,6 +111,24 @@ public class Window {
 				variableYieldTime = Math.max(variableYieldTime - 2 * 1000, 0);
 			}
 		}
+	}
+	
+	public static int getWidth() {
+		IntBuffer width = BufferUtils.createIntBuffer(1);
+		IntBuffer height = BufferUtils.createIntBuffer(1);
+		GLFW.glfwGetWindowSize(window, width, height);
+		Window.WIDTH = width.get();
+
+		return Window.WIDTH;
+	}
+
+	public static int getHeight() {
+		IntBuffer width = BufferUtils.createIntBuffer(1);
+		IntBuffer height = BufferUtils.createIntBuffer(1);
+		GLFW.glfwGetWindowSize(window, width, height);
+		Window.HEIGHT = height.get();
+
+		return Window.HEIGHT;
 	}
 	
 	public static int getFPS()
