@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import javax.vecmath.Quat4f;
+import javax.vecmath.Tuple3f;
 import javax.vecmath.Vector3f;
 
 import org.lwjgl.opengl.GL11;
 
-import com.bulletphysics.collision.shapes.BoxShape;
+import com.bulletphysics.collision.dispatch.CollisionObject;
+import com.bulletphysics.collision.dispatch.CollisionWorld;
 import com.bulletphysics.collision.shapes.ConvexHullShape;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.linearmath.Transform;
@@ -29,27 +31,34 @@ public class ReleaseGame {
 	private BulletWorld world;
 	private ArrayList<PhysicsObject> bulletObjects = new ArrayList<PhysicsObject>();
 	private PhysicsObject player;
-	
-	//DEBUG
+
+	// DEBUG
 	public Debug debug;
 	private Mesh debugMesh;
 	private MeshObject debugObject;
 
 	public ReleaseGame() {
+		init();
+
+		loop();
+		close();
+	}
+
+	private void init() {
 		Window.createWindow();
 		Window.enableDepthBuffer();
 		GL11.glEnable(GL11.GL_CULL_FACE);
 		GL11.glCullFace(GL11.GL_BACK);
 
 		camera = new Camera(70f, 0.1f, 10000f);
-		camera.setPosition(new Vector3f(10f, 15f, 50f));
+		// camera.setPosition(new Vector3f(10f, 15f, 50f));
 		shader = new WorldShader("vertexShader.glsl", "fragmentShader.glsl");
 
 		shader.bind();
 		shader.loadMatrix(shader.getProjectionMatrix(), camera.getProjectionMatrix());
 		shader.unbind();
 
-		mesh = OBJLoader.load("stall.obj");
+		mesh = OBJLoader.load("box.obj");
 		// mesh.add(getVertices(), getTexCoords(), getIndices());
 		object = new MyObject(mesh, new Vector3f(0f, 0f, 100f), new Vector3f(0f, 0f, 0f), 1f) {
 		};
@@ -60,18 +69,18 @@ public class ReleaseGame {
 		// initPhysics();
 		world = new BulletWorld();
 		world.createPlane();
-//		BoxShape box = world.createBox(new Vector3f(1f, 1f, 1f));
+		// BoxShape box = world.createBox(new Vector3f(1f, 1f, 1f));
 		ConvexHullShape box = world.createConvexHull(mesh.getPoints());
 		// SphereShape box = world.createSphere(1f);
 
 		int startSize = 6;
-		int size = 8;
-		
+		int size = 16;
+
 		debug = new Debug();
 		world.world.setDebugDrawer(debug);
 
 		RigidBody playerBody = world.addShapeToWorld(box, new Quat4f(0, 0, 0, 1), camera.getPosition(), 100f, false);
-		player = new PhysicsObject(playerBody, object);
+		player = new PhysicsObject(-1, playerBody, object);
 		for (int x = startSize; x < size; x++) {
 			for (int y = startSize; y < size; y++) {
 				for (int z = startSize; z < size; z++) {
@@ -83,15 +92,14 @@ public class ReleaseGame {
 
 					Random r = new Random();
 					float mass = 1f;
-					if(r.nextInt(4) == 0)
-					{
+					if (r.nextInt(4) == 0) {
 						mass = 0f;
 					}
-//					int rotation = r.nextInt(360);
-//					object.setRotation(new Vector3f(0, rotation, rotation));
+					// int rotation = r.nextInt(360);
+					// object.setRotation(new Vector3f(0, rotation, rotation));
 
 					RigidBody body = world.addShapeToWorld(box, new Quat4f(0, 0, 0, 1), new Vector3f(x * 2.5f + 0.1f, y * 2.5f, z * 2.5f), mass, true);
-					bulletObjects.add(new PhysicsObject(body, object));
+					bulletObjects.add(new PhysicsObject(x + y + z, body, object));
 
 					Transform transform = new Transform();
 					body.getMotionState().getWorldTransform(transform);
@@ -102,16 +110,18 @@ public class ReleaseGame {
 				}
 			}
 			world.world.debugDrawWorld();
-			
+
 		}
-		
+
 		debugMesh = new Mesh();
 		debugMesh.setupLine();
 		debugObject = new MeshObject(debugMesh, new Vector3f(0f, 25f, 0f), new Vector3f(0f, 0f, 0f), 1f) {
 			public void update() {
 			}
 		};
-
+	}
+	
+	private void loop(){
 		while (!Window.isCloseRequested()) {
 			shader.bind();
 			{
@@ -121,12 +131,12 @@ public class ReleaseGame {
 					Transform transform = new Transform();
 					for (int i = 0; i < bulletObjects.size(); i++) {
 						Quat4f rotation = new Quat4f();
-						float[] m = new float[4*4];
-						bulletObjects.get(i).getBody().getMotionState().getWorldTransform(transform).getOpenGLMatrix(m);;
+						float[] m = new float[4 * 4];
+						bulletObjects.get(i).getBody().getMotionState().getWorldTransform(transform).getOpenGLMatrix(m);
 						transform.getRotation(rotation);
-						
-//						bulletObjects.get(i).getObject().setPosition(transform.origin);
-//						bulletObjects.get(i).getObject().setRotation(toEulerianAngle(rotation));
+
+						// bulletObjects.get(i).getObject().setPosition(transform.origin);
+						// bulletObjects.get(i).getObject().setRotation(toEulerianAngle(rotation));
 
 						mesh.render(shader, shader.getModelMatrix(), bulletObjects.get(i).getObject(), camera, m);
 					}
@@ -136,7 +146,7 @@ public class ReleaseGame {
 					player.getObject().setPosition(transform.origin);
 				}
 				mesh.disable();
-				
+
 				debugMesh.enable();
 				{
 					debugMesh.drawLine(shader, shader.getModelMatrix(), debugObject, new Vector3f(10, yLoc, 10), new Vector3f(-10, -10, -10));
@@ -145,44 +155,13 @@ public class ReleaseGame {
 			}
 			shader.unbind();
 
-			if (Input.isKeyDown(Window.window, Key.KEY_W)) {
-				float x = (float) (Math.sin(camera.getYaw() * Math.PI / 180) * camera.SPEED * Time.getDelta());
-				float y = 0f;
-				float z = (float) -(Math.cos(camera.getYaw() * Math.PI / 180) * camera.SPEED * Time.getDelta());
-				Vector3f force = new Vector3f(x, y, z);
-				player.getBody().activate();
-				player.getBody().setLinearVelocity(force);
-				camera.moveForward();
-			}
+			rayCast();
 
-			if (Input.isKeyDown(Window.window, Key.KEY_S)) {
-				camera.moveBack();
-			}
-
-			if (Input.isKeyDown(Window.window, Key.KEY_A)) {
-				camera.moveLeft();
-			}
-
-			if (Input.isKeyDown(Window.window, Key.KEY_D)) {
-				camera.moveRight();
-			}
-
-			if (Input.isKeyDown(Window.window, Key.KEY_P)) {
-				world.world.stepSimulation(0.005f);
-			}
-			
-			if(Input.isKeyDown(Window.window, Key.KEY_UP)){
-				System.out.println("UP");
-				player.getBody().applyImpulse(new Vector3f(0f, 0f, 1f), player.getObject().getPosition());
-			}
-			
-			if(Input.isKeyPressed(Window.window, Key.KEY_1)){
-				yLoc += 0.5f;
-			}
-
+			input();
 			// Window.sync(60);
 			// camera.setPosition(player.getObject().getPosition());
-//			world.world.stepSimulation(0.005f);
+
+			world.world.stepSimulation(0.005f);
 			world.world.debugDrawWorld();
 			camera.update();
 			Input.update(Window.window);
@@ -190,7 +169,9 @@ public class ReleaseGame {
 			Window.setTitle(TITLE + " [FPS: " + Window.getFPS() + "]");
 			Window.update();
 		}
+	}
 
+	private void close() {
 		debugMesh.cleanUp();
 		texture.cleanUp();
 		mesh.cleanUp();
@@ -198,7 +179,88 @@ public class ReleaseGame {
 		world.cleanup();
 		Window.close();
 	}
-	
+
+	private void rayCast() {
+		if (world.world != null) {
+			Vector3f start = new Vector3f(camera.getPosition());
+			Vector3f res = new Vector3f(camera.getPosition());
+			Vector3f dir = new Vector3f(camera.direction(100));
+			res.add(dir);
+			Vector3f end = new Vector3f(res);
+			System.out.println(start + " : " + end);
+			CollisionWorld.ClosestRayResultCallback rayCallback = new CollisionWorld.ClosestRayResultCallback(start, end);
+			world.world.rayTest(start, end, rayCallback);
+			if (rayCallback.hasHit()) {
+				RigidBody body = RigidBody.upcast(rayCallback.collisionObject);
+				if (body != null) {
+					PhysicsObject ob = null;
+					for (int i = 0; i < bulletObjects.size(); i++) {
+						ob = bulletObjects.get(i);
+						if (ob.getBody().equals(body)) {
+							Window.setTitle("ID: " + ob.getID());
+							break;
+						}
+					}
+					body.setActivationState(CollisionObject.ACTIVE_TAG);
+					Vector3f impulse = new Vector3f(end);
+					impulse.normalize();
+					float impulseStrength = 1f;
+					impulse.scale(impulseStrength);
+					Vector3f relPos = new Vector3f();
+					relPos.sub(rayCallback.hitPointWorld, body.getCenterOfMassPosition(new Vector3f()));
+					body.applyImpulse(impulse, relPos);
+				}
+			}
+		}
+	}
+
+	private void input() {
+		// if (Input.isKeyDown(Window.window, Key.KEY_W)) {
+		// float x = (float) (Math.sin(camera.getYaw() * Math.PI / 180) *
+		// camera.SPEED * Time.getDelta());
+		// float y = 0f;
+		// float z = (float) -(Math.cos(camera.getYaw() * Math.PI / 180) *
+		// camera.SPEED * Time.getDelta());
+		// Vector3f force = new Vector3f(x, y, z);
+		// player.getBody().activate();
+		// player.getBody().setLinearVelocity(force);
+		// camera.moveForward();
+		// }
+
+		if (Input.isKeyDown(Window.window, Key.KEY_S)) {
+			camera.moveBack();
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_A)) {
+			camera.moveLeft();
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_D)) {
+			camera.moveRight();
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_P)) {
+			world.world.stepSimulation(0.005f);
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_UP)) {
+			System.out.println("UP");
+			player.getBody().applyImpulse(new Vector3f(0f, 0f, 1f), player.getObject().getPosition());
+		}
+
+		if (Input.isKeyPressed(Window.window, Key.KEY_1)) {
+			yLoc += 0.5f;
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_Q)) {
+			camera.setYaw(camera.getYaw() - 0.05f);
+		}
+
+		if (Input.isKeyDown(Window.window, Key.KEY_E)) {
+			camera.setYaw(camera.getYaw() + 0.05f);
+		}
+	}
+
 	float yLoc = -1f;
 
 	public float[] getVertices() {
@@ -211,9 +273,8 @@ public class ReleaseGame {
 		};
 		return vertices;
 	}
-	
-	public Vector3f toEulerianAngle(Quat4f q)
-	{
+
+	public Vector3f toEulerianAngle(Quat4f q) {
 		double ysqr = q.y * q.y;
 
 		// roll (x-axis rotation)
@@ -229,9 +290,9 @@ public class ReleaseGame {
 
 		// yaw (z-axis rotation)
 		double t3 = +2.0 * (q.w * q.z + q.x * q.y);
-		double t4 = +1.0 - 2.0 * (ysqr + q.z * q.z);  
+		double t4 = +1.0 - 2.0 * (ysqr + q.z * q.z);
 		float yaw = (float) Math.atan2(t3, t4);
-		
+
 		Vector3f v = new Vector3f(roll, pitch, yaw);
 		return v;
 	}

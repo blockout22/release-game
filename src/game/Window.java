@@ -1,5 +1,6 @@
 package game;
 
+import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -129,6 +130,52 @@ public class Window {
 		Window.HEIGHT = height.get();
 
 		return Window.HEIGHT;
+	}
+	
+	public static double getCursorXpos()
+	{
+		double x = Double.valueOf(getCursorPos().split(":")[0]);
+		
+		return x;
+	}
+	
+	public static double getCursorYpos()
+	{
+		double y = Double.valueOf(getCursorPos().split(":")[1]);
+		
+		return y;
+	}
+	
+	public static String getCursorPos()
+	{
+		DoubleBuffer xpos = BufferUtils.createDoubleBuffer(1);
+		DoubleBuffer ypos = BufferUtils.createDoubleBuffer(1);
+		xpos.rewind();
+		xpos.rewind();
+		GLFW.glfwGetCursorPos(window, xpos, ypos);
+		
+		double x = xpos.get();
+		double y = ypos.get();
+		
+		xpos.clear();
+		ypos.clear();
+		
+		return x + ":" + y;
+	}
+	
+	public static double getOpenGLx()
+	{
+		double width = getWidth();
+		double openGLx = Window.getCursorXpos() / (width / 2) - 1;
+		return openGLx;
+	}
+	
+	public static double getOpenGly()
+	{
+		double height = getHeight();
+		double openGLy = 1 - (Window.getCursorYpos() / (height / 2));
+		
+		return openGLy;
 	}
 	
 	public static int getFPS()

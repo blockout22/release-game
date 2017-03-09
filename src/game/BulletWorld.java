@@ -30,7 +30,7 @@ public class BulletWorld {
 
 	public DiscreteDynamicsWorld world = new DiscreteDynamicsWorld(dispatcher, broadpahse, solver, collisionConfiguration);
 	{
-		world.setGravity(new Vector3f(0, -10f, 0));
+		world.setGravity(new Vector3f(0, -9.81f, 0));
 		Vector3f gravity = new Vector3f();
 		world.getGravity(gravity);
 	}

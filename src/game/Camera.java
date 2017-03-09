@@ -11,7 +11,7 @@ import org.lwjgl.glfw.GLFW;
 public class Camera {
 
 	public float y_height = 0;
-	private Vector3f position = new Vector3f(0, y_height, 0);
+	private Vector3f position = new Vector3f(0, 1f, 0);
 	private float pitch = 0;
 	private float yaw = 0;
 	private float roll = 0;
@@ -26,11 +26,11 @@ public class Camera {
 	private boolean mouseGrabbed = false;
 	private Vector2f previousPos = new Vector2f(-1, -1);
 	private Vector2f curPos = new Vector2f(0, 0);
-	
+
 	private Matrix4 projectionMatrix;
-	
-	public float SPEED = 0.1f;
-	
+
+	public float SPEED = 0.081f;
+
 	public Camera(float fov, float z_near, float z_far) {
 		this.FOV = fov;
 		this.z_near = z_near;
@@ -38,18 +38,17 @@ public class Camera {
 
 		createProjectionMatrix(Window.getWidth(), Window.getHeight());
 	}
+
 	public void update() {
 		float speed = 0.01f;
 		float x = 0;
 		float z = 0;
-//		float y = 0;
-		
+		// float y = 0;
 
 		if (Input.isMousePressed(Window.window, Key.MOUSE_BUTTON_LEFT)) {
-			if(!mouseGrabbed)
-			{
+			if (!mouseGrabbed) {
 				grabCursor();
-			}else{
+			} else {
 				releaseCursor();
 			}
 		}
@@ -62,20 +61,19 @@ public class Camera {
 		}
 		previousPos.x = curPos.x;
 		previousPos.y = curPos.y;
-		
+
 		if (getPitch() > pitch_max) {
 			setPitch(pitch_max);
 		} else if (getPitch() < pitch_min) {
 			setPitch(pitch_min);
 		}
-		if(yaw > 360)
-		{
+		if (yaw > 360) {
 			yaw = 0;
-		}else if(yaw < 0){
+		} else if (yaw < 0) {
 			yaw = 360;
 		}
 	}
-	
+
 	public boolean isInBounds(float x, float y, float z) {
 		if (x - position.x < z_far && x - position.x > -z_far) {
 			if (y - position.y < z_far && y - position.y > -z_far - 10) {
@@ -87,9 +85,8 @@ public class Camera {
 
 		return false;
 	}
-	
-	public Vector2f getCursorPos()
-	{
+
+	public Vector2f getCursorPos() {
 		DoubleBuffer xpos = BufferUtils.createDoubleBuffer(2);
 		DoubleBuffer ypos = BufferUtils.createDoubleBuffer(1);
 		xpos.rewind();
@@ -104,15 +101,13 @@ public class Camera {
 		Vector2f result = new Vector2f((float) x, (float) y);
 		return result;
 	}
-	
-	public void grabCursor()
-	{
+
+	public void grabCursor() {
 		mouseGrabbed = true;
 		GLFW.glfwSetInputMode(Window.window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
 	}
-	
-	public void releaseCursor()
-	{
+
+	public void releaseCursor() {
 		mouseGrabbed = false;
 		GLFW.glfwSetInputMode(Window.window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
 	}
@@ -132,31 +127,37 @@ public class Camera {
 		projectionMatrix.m32 = -((2 * z_near * z_far) / frustum_length);
 		projectionMatrix.m33 = 0;
 	}
-	
-	public void moveForward()
-	{
+
+	public void moveForward() {
 		getPosition().x += Math.sin(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
+		getPosition().y += Math.toRadians(-getPitch());
 		getPosition().z += -Math.cos(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
 	}
-	
-	public void moveBack()
-	{
+
+	public void moveBack() {
 		getPosition().x -= Math.sin(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
 		getPosition().z -= -Math.cos(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
 	}
-	
-	public void moveLeft()
-	{
+
+	public void moveLeft() {
 		getPosition().x += Math.sin((getYaw() - 90) * Math.PI / 180) * SPEED * Time.getDelta();
 		getPosition().z += -Math.cos((getYaw() - 90) * Math.PI / 180) * SPEED * Time.getDelta();
 	}
-	
-	public void moveRight()
-	{
+
+	public void moveRight() {
 		getPosition().x += Math.sin((getYaw() + 90) * Math.PI / 180) * SPEED * Time.getDelta();
 		getPosition().z += -Math.cos((getYaw() + 90) * Math.PI / 180) * SPEED * Time.getDelta();
 	}
-	
+
+	public Vector3f direction(float r) {
+		float x = (float) (-Math.sin(getYaw() * Math.PI / 180)) * r;
+		float y = (float) Math.toRadians(getPitch()) * r;
+		float z = (float) (Math.cos(getYaw() * Math.PI / 180)) * r;
+		
+		Vector3f dir = new Vector3f(-x, -y, -z);
+		return dir;
+	}
+
 	public void moveX(float amt) {
 		this.getPosition().x += amt;
 	}
@@ -207,6 +208,10 @@ public class Camera {
 
 	public void setFOV(float fOV) {
 		FOV = fOV;
+	}
+
+	public float getZFar() {
+		return z_far;
 	}
 
 	public Matrix4 getProjectionMatrix() {
