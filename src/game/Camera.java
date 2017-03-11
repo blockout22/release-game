@@ -12,6 +12,7 @@ public class Camera {
 
 	public float y_height = 0;
 	private Vector3f position = new Vector3f(0, 1f, 0);
+	
 	private float pitch = 0;
 	private float yaw = 0;
 	private float roll = 0;
@@ -35,7 +36,7 @@ public class Camera {
 		this.FOV = fov;
 		this.z_near = z_near;
 		this.z_far = z_far;
-
+		
 		createProjectionMatrix(Window.getWidth(), Window.getHeight());
 	}
 
@@ -130,8 +131,12 @@ public class Camera {
 
 	public void moveForward() {
 		getPosition().x += Math.sin(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
-		getPosition().y += Math.toRadians(-getPitch());
 		getPosition().z += -Math.cos(getYaw() * Math.PI / 180) * SPEED * Time.getDelta();
+		
+//		getPosition().y += -Math.sin(Math.toRadians(getPitch())) * SPEED * Time.getDelta();
+		
+//		getPosition().x += Math.sin(Math.toRadians(getYaw())) * Math.cos(Math.toRadians(getPitch())) * SPEED * Time.getDelta();
+//		getPosition().z += -Math.cos(Math.toRadians(getYaw())) * Math.cos(Math.toRadians(getPitch())) * SPEED * Time.getDelta();
 	}
 
 	public void moveBack() {
@@ -149,12 +154,22 @@ public class Camera {
 		getPosition().z += -Math.cos((getYaw() + 90) * Math.PI / 180) * SPEED * Time.getDelta();
 	}
 
-	public Vector3f direction(float r) {
-		float x = (float) (-Math.sin(getYaw() * Math.PI / 180)) * r;
-		float y = (float) Math.toRadians(getPitch()) * r;
-		float z = (float) (Math.cos(getYaw() * Math.PI / 180)) * r;
+	public Vector3f rayForward(float r) {
 		
-		Vector3f dir = new Vector3f(-x, -y, -z);
+		
+		Vector3f dir = directionForward();
+		dir.scale(r);
+		return dir;
+	}
+	
+	public Vector3f directionForward()
+	{
+		float y = (float) -Math.sin(Math.toRadians(getPitch()));
+		float x = (float) (Math.sin(Math.toRadians(getYaw())) * Math.cos(Math.toRadians(getPitch())));
+		float z = (float) (-Math.cos(Math.toRadians(getYaw())) * Math.cos(Math.toRadians(getPitch())));
+		
+		
+		Vector3f dir = new Vector3f(x, y, z);
 		return dir;
 	}
 

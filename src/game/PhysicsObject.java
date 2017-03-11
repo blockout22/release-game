@@ -14,6 +14,11 @@ public class PhysicsObject {
 		this.object = object;
 	}
 	
+	public void interact()
+	{
+		
+	}
+	
 	public int getID()
 	{
 		return ID;

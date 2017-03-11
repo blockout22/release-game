@@ -12,4 +12,9 @@ public class MyObject extends MeshObject {
 	public void update() {
 	}
 
+	@Override
+	public void interact() {
+		System.out.println("This is a my object");
+	}
+
 }

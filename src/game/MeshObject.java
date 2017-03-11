@@ -20,6 +20,7 @@ public abstract class MeshObject {
 	}
 	
 	public abstract void update();
+	public abstract void interact();
 	
 	/**
 	 * updates the Meshobject even if its outside the render distance of camera;
